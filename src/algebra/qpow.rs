@@ -8,7 +8,6 @@ pub trait QuickPow {
 
 impl<T: One + Clone + MulAssign> QuickPow for T {
     fn pow(self, mut p: usize) -> Self {
-        assert!(p >= 1);
         let mut base = self;
         let mut product = Self::one();
 
