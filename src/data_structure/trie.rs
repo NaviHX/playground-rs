@@ -16,16 +16,16 @@ pub struct TrieImpl<T, S> {
 }
 
 impl<T, S> TrieImpl<T, S> {
-    fn new(attached_info: T) -> Self {
+    fn new(walk_info: T) -> Self {
         Self {
             next: HashMap::new(),
-            walk_info: attached_info,
+            walk_info,
             attached_info: None,
         }
     }
 
-    fn boxed(attached_info: T) -> Box<Self> {
-        Box::new(Self::new(attached_info))
+    fn boxed(walk_info: T) -> Box<Self> {
+        Box::new(Self::new(walk_info))
     }
 }
 
