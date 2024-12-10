@@ -23,3 +23,6 @@ impl<T: One + Clone + MulAssign> QuickPow for T {
         product
     }
 }
+
+pub fn qpow_type_check(_v: impl QuickPow) {}
+
