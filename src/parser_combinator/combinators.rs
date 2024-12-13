@@ -87,3 +87,66 @@ where
         Some((input, fold))
     }
 }
+
+pub fn many_mn<IT, T, R, F>(
+    mut p: impl Parser<IT, T>,
+    m: usize,
+    n: usize,
+    mut f: F,
+    init: R,
+) -> impl FnMut(IT) -> ParserResult<IT, R>
+where
+    R: Clone,
+    F: FnMut(R, T) -> R,
+    IT: Iterator + Clone,
+{
+    move |mut input: IT| {
+        if n == 0 {
+            return Some((input, init.clone()));
+        }
+
+        let mut fold = init.clone();
+        let mut count = 0;
+        while let Some((s, v)) = p(input.clone()) {
+            input = s;
+            fold = f(fold, v);
+            count += 1;
+            if count == n {
+                break;
+            }
+        }
+
+        (count >= m).then_some((input, fold))
+    }
+}
+
+pub fn many_till<IT, T, C, R, F>(
+    mut p: impl Parser<IT, T>,
+    mut cond: impl Parser<IT, C>,
+    mut f: F,
+    init: R,
+) -> impl FnMut(IT) -> ParserResult<IT, (R, Option<C>)>
+where
+    R: Clone,
+    F: FnMut(R, T) -> R,
+    IT: Iterator + Clone,
+{
+    move |mut input: IT| {
+        let mut fold = init.clone();
+        loop {
+            let c = cond(input.clone());
+            if let Some((remainder, c)) = c {
+                break Some((remainder, (fold, Some(c))));
+            }
+
+            let r = p(input.clone());
+            if let Some((remainder, r)) = r {
+                input = remainder;
+                fold = f(fold, r);
+                continue;
+            }
+
+            break Some((input, (fold, None)));
+        }
+    }
+}
