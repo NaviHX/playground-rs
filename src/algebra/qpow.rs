@@ -25,4 +25,3 @@ impl<T: One + Clone + MulAssign> QuickPow for T {
 }
 
 pub fn qpow_type_check(_v: impl QuickPow) {}
-

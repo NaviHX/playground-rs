@@ -28,7 +28,7 @@ impl<S> TrieWalk<S> for FailTo<S> {
                 }
                 None => {
                     break Self {
-                        p: NonNull::new((node as *const _) as *mut _)
+                        p: NonNull::new((node as *const _) as *mut _),
                     };
                 }
             }
