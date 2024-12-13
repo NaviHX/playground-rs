@@ -13,7 +13,10 @@ pub fn peek<IT: Iterator + Clone, T>(
     }
 }
 
-pub fn tag<IT: Iterator<Item = char>>(c: char) -> impl FnMut(IT) -> ParserResult<IT, ()> {
+pub fn tag<IT: Iterator>(c: IT::Item) -> impl FnMut(IT) -> ParserResult<IT, ()>
+where
+    IT::Item: Eq,
+{
     move |mut input: IT| {
         let first = input.next()?;
         (first == c).then_some((input, ()))
