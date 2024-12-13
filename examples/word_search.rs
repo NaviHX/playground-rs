@@ -12,7 +12,7 @@ fn main() {
     let walker = root.walk(sentence.chars());
     for node in walker {
         if let Some(id) = node.attached_info {
-            println!("Found {id}th word '{}' in '{sentence}'",dict[id]);
+            println!("Found {id}th word '{}' in '{sentence}'", dict[id]);
         }
     }
 }

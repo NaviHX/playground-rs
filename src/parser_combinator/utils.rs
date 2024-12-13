@@ -1,21 +1,30 @@
 use super::{Parser, ParserResult};
 
-pub fn nothing(input: &str) -> ParserResult<()> {
+pub fn nothing<IT: Iterator>(input: IT) -> ParserResult<IT, ()> {
     Some((input, ()))
 }
 
-pub fn peek<T>(mut p: impl Parser<T>) -> impl FnMut(&str) -> ParserResult<T> {
-    move |input: &str| p(input).map(|(_, t)| (input, t))
+pub fn peek<IT: Iterator + Clone, T>(
+    mut p: impl Parser<IT, T>,
+) -> impl FnMut(IT) -> ParserResult<IT, T> {
+    move |input: IT| {
+        let cloned = input.clone();
+        p(cloned).map(|(_, v)| (input, v))
+    }
 }
 
-pub fn tag(c: char) -> impl FnMut(&str) -> ParserResult<()> {
-    move |input: &str| input.strip_prefix(c).map(|remainder| (remainder, ()))
+pub fn tag<IT: Iterator<Item = char>>(c: char) -> impl FnMut(IT) -> ParserResult<IT, ()> {
+    move |mut input: IT| {
+        let first = input.next()?;
+        (first == c).then_some((input, ()))
+    }
 }
 
-pub fn any_char(input: &str) -> ParserResult<char> {
-    input.chars().next().map(|c| (&input[1..], c))
+pub fn anything<IT: Iterator<Item = T>, T>(mut input: IT) -> ParserResult<IT, T> {
+    let next = input.next()?;
+    Some((input, next))
 }
 
-pub fn ascii_digit(input: &str) -> ParserResult<char> {
-    any_char.and_then(nothing, |c, _| c.is_ascii_digit().then_some(c))(input)
+pub fn ascii_digit<IT: Iterator<Item = char>>(input: IT) -> ParserResult<IT, char> {
+    anything.and_then(nothing, |c: char, _| c.is_ascii_digit().then_some(c))(input)
 }
