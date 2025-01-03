@@ -2,6 +2,7 @@ mod ac;
 pub type ACAutomata<S> = TrieImpl<ac::FailTo<S>, S>;
 
 use std::collections::HashMap;
+use std::collections::VecDeque;
 
 pub trait TrieWalk<S>: Sized {
     fn root() -> Self;
@@ -59,6 +60,36 @@ impl<T: TrieWalk<S>, S> TrieImpl<T, S> {
 
     pub fn new_boxed_root() -> Box<Self> {
         Box::new(Self::new_root())
+    }
+
+    pub fn transform<T2: TrieWalk<S>>(self) -> Box<TrieImpl<T2, S>> {
+        let mut q = VecDeque::new();
+        let mut new_root = Box::new(TrieImpl {
+            next: HashMap::new(),
+            walk_info: T2::root(),
+            attached_info: self.attached_info,
+        });
+
+        for (c, n) in self.next {
+            q.push_back((&mut *new_root as *mut _, c, n));
+        }
+
+        while let Some((p, c, n)) = q.pop_front() {
+            let p = unsafe { &mut *p };
+            let nn = TrieImpl {
+                next: HashMap::new(),
+                walk_info: T2::build(p, c),
+                attached_info: n.attached_info,
+            };
+            let mut nn = Box::new(nn);
+
+            for (c, next) in n.next {
+                q.push_back((&mut *nn as *mut _, c, next));
+            }
+            p.next.insert(c, nn);
+        }
+
+        new_root
     }
 }
 
