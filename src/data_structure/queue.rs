@@ -107,11 +107,12 @@ impl<T> Queue<T> {
         }
 
         #[allow(deprecated)]
-        if let Ok(first) = self
+        if self
             .front
             .compare_and_set(prev_first, next, Ordering::Relaxed, guard)
+            .is_ok()
         {
-            guard.defer_destroy(first);
+            guard.defer_destroy(prev_first);
         }
 
         true
