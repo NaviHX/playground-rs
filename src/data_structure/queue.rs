@@ -118,6 +118,59 @@ impl<T> Queue<T> {
     }
 }
 
+impl<T> Iterator for Queue<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let guard = epoch::pin();
+        loop {
+            let head = self.front.load(Ordering::Relaxed, &guard);
+            let head_ptr = unsafe { head.as_ref().expect("Queue has no node!") };
+
+            let next = head_ptr.next.load(Ordering::Relaxed, &guard);
+            match head_ptr.val.take() {
+                Some(val) => {
+                    if !next.is_null() {
+                        unsafe {
+                            guard.defer_destroy(head);
+                        }
+                        self.front.store(next, Ordering::Relaxed);
+                    }
+
+                    break Some(val);
+                }
+                None => {
+                    if next.is_null() {
+                        break None;
+                    }
+
+                    unsafe {
+                        guard.defer_destroy(head);
+                    }
+                    self.front.store(next, Ordering::Relaxed);
+                }
+            }
+        }
+    }
+}
+
+impl<T> Drop for Queue<T> {
+    fn drop(&mut self) {
+        let guard = epoch::pin();
+        let mut head = self.front.load(Ordering::Relaxed, &guard);
+        while let Some(head_ptr) = unsafe { head.as_ref() } {
+            let val = &head_ptr.val;
+            let _ = val.take();
+
+            unsafe {
+                guard.defer_destroy(head);
+            }
+
+            head = head_ptr.next.load(Ordering::Relaxed, &guard);
+        }
+    }
+}
+
 impl<T> Default for Queue<T> {
     fn default() -> Self {
         Self::new()
@@ -147,5 +200,17 @@ mod test {
         queue.push(1);
         assert_eq!(queue.pop(), Some(1));
         assert_eq!(queue.pop(), None);
+    }
+
+    #[test]
+    fn iter() {
+        let queue = Queue::new();
+        for i in 0..4 {
+            queue.push(i);
+        }
+
+        for (i, v) in queue.enumerate() {
+            assert_eq!(v, i);
+        }
     }
 }

@@ -67,6 +67,37 @@ impl<T> TreiberStack<T> {
     }
 }
 
+impl<T> Default for TreiberStack<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Iterator for TreiberStack<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let guard = epoch::pin();
+        let top = self.head.load(Ordering::Relaxed, &guard);
+
+        unsafe { top.as_ref() }.map(|top_ptr| {
+            let next = top_ptr.next.load(Ordering::Relaxed, &guard);
+            self.head.store(next, Ordering::Relaxed);
+            let res = unsafe { (&top_ptr.val as *const ManuallyDrop<T> as *const T).read() };
+            unsafe {
+                guard.defer_destroy(top);
+            }
+            res
+        })
+    }
+}
+
+impl<T> Drop for TreiberStack<T> {
+    fn drop(&mut self) {
+        for _ in self.by_ref() {}
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::TreiberStack;
