@@ -24,7 +24,6 @@ pub fn binary_search<T: Ord>(slice: &[T], target: &T) -> Result<usize, usize> {
         use std::cmp::Ordering::*;
 
         let m = l + (r - l) / 2;
-        println!("{l} - {m} - {r}");
         match target.cmp(&slice[m]) {
             Greater => l = m + 1,
             Less | Equal => r = m,
