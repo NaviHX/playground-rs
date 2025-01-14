@@ -45,7 +45,7 @@ impl<'a> Future for AsyncLockFut<'a> {
     }
 }
 
-struct AsyncLockGuard<'a> {
+pub struct AsyncLockGuard<'a> {
     lock: &'a AsyncLock,
 }
 
