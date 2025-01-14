@@ -1,4 +1,4 @@
-use crossbeam::epoch::{self, Atomic, Owned};
+use crossbeam::epoch::{self, Atomic, CompareExchangeError, Owned};
 use std::{mem::ManuallyDrop, sync::atomic::Ordering};
 
 struct Node<T> {
@@ -28,11 +28,7 @@ impl<T> TreiberStack<T> {
         loop {
             let head = self.head.load(Ordering::Relaxed, &guard);
             owned.next.store(head, Ordering::Relaxed);
-            #[allow(deprecated)]
-            match self
-                .head
-                .compare_and_set(head, owned, Ordering::Release, &guard)
-            {
+            match self.head.compare_exchange(head, owned, Ordering::Release, Ordering::Relaxed, &guard) {
                 Ok(_) => return,
                 Err(n) => owned = n.new,
             }
@@ -48,10 +44,9 @@ impl<T> TreiberStack<T> {
                 Some(h) => {
                     let next = h.next.load(Ordering::Relaxed, &guard);
 
-                    #[allow(deprecated)]
                     if self
                         .head
-                        .compare_and_set(head, next, Ordering::Release, &guard)
+                        .compare_exchange(head, next, Ordering::Release, Ordering::Relaxed, &guard)
                         .is_ok()
                     {
                         let val = unsafe { (&h.val as *const ManuallyDrop<T> as *const T).read() };

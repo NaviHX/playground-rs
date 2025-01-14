@@ -27,8 +27,11 @@ impl<T> Removable<T> {
     }
 
     pub fn take(&self) -> Option<T> {
-        #[allow(deprecated)]
-        if self.present.compare_and_swap(true, false, Ordering::AcqRel) {
+        if self
+            .present
+            .compare_exchange(true, false, Ordering::AcqRel, Ordering::Relaxed)
+            .is_ok()
+        {
             Some(unsafe { (&self.val as *const ManuallyDrop<T> as *const T).read() })
         } else {
             None
@@ -106,10 +109,9 @@ impl<T> Queue<T> {
             return false;
         }
 
-        #[allow(deprecated)]
         if self
             .front
-            .compare_and_set(prev_first, next, Ordering::Relaxed, guard)
+            .compare_exchange(prev_first, next, Ordering::Relaxed, Ordering::Relaxed, guard)
             .is_ok()
         {
             guard.defer_destroy(prev_first);
