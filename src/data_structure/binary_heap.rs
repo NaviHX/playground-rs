@@ -75,7 +75,7 @@ impl<T: Ord> BinaryHeap<T> {
     }
 
     pub fn top(&self) -> Option<&T> {
-        todo!()
+        self.data.first()
     }
 }
 
