@@ -1,4 +1,6 @@
 pub mod tag;
+pub mod trc;
+pub mod ghost_cell;
 
 #[macro_export]
 macro_rules! log_call {
